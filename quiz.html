@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI & Azure Mastery Quiz Game</title>
+    <style>
+        :root {
+            --primary: #0078d4;
+            --primary-dark: #005a9e;
+            --success: #107c10;
+            --error: #d83b01;
+            --bg: #f3f2f1;
+            --card-bg: #ffffff;
+            --text: #323130;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 750px;
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: var(--primary);
+            text-align: center;
+            margin-top: 0;
+        }
+
+        .quiz-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #edebe9;
+            padding-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .question-text {
+            font-size: 1.15rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .options-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 20px 0;
+        }
+
+        .option-item {
+            background: #faf9f8;
+            border: 2px solid #edebe9;
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .option-item:hover {
+            background: #f3f2f1;
+            border-color: var(--primary);
+        }
+
+        .option-item.selected {
+            border-color: var(--primary);
+            background: #eff6fc;
+        }
+
+        .option-item.correct {
+            background: #dff6dd !important;
+            border-color: var(--success) !important;
+            color: #107c10;
+        }
+
+        .option-item.incorrect {
+            background: #fde7e9 !important;
+            border-color: var(--error) !important;
+            color: #a80000;
+        }
+
+        .rationale-box {
+            background: #fff4ce;
+            border-left: 4px solid #ffaa44;
+            padding: 12px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            display: none;
+            font-size: 0.95rem;
+        }
+
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .btn:disabled {
+            background-color: #c8c6c4;
+            cursor: not-allowed;
+        }
+
+        .screen {
+            display: none;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        .score-display {
+            text-align: center;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- START SCREEN -->
+    <div id="start-screen" class="screen active">
+        <h1>AI & Azure Mastery Quiz Challenge</h1>
+        <p style="text-align: center; color: #605e5c;">Test your knowledge across Generative AI, Vector Databases, NLP, Computer Vision, Machine Learning, and Responsible AI.</p>
+        <button class="btn" onclick="startQuiz()">Start Quiz</button>
+    </div>
+
+    <!-- QUIZ SCREEN -->
+    <div id="quiz-screen" class="screen">
+        <div class="quiz-header">
+            <span id="question-progress">Question 1 of 60</span>
+            <span id="score-keeper">Score: 0</span>
+        </div>
+        <div class="question-text" id="question-title">Loading question...</div>
+        <ul class="options-list" id="options-container">
+            <!-- Dynamically populated options -->
+        </ul>
+        <div class="rationale-box" id="rationale-container">
+            <strong>Rationale: </strong><span id="rationale-text"></span>
+        </div>
+        <button class="btn" id="next-btn" onclick="nextQuestion()" disabled>Next Question</button>
+    </div>
+
+    <!-- END SCREEN -->
+    <div id="end-screen" class="screen">
+        <h1>Quiz Completed! 🎉</h1>
+        <div class="score-display" id="final-score">Your Score: 0 / 60</div>
+        <p style="text-align: center; color: #605e5c;" id="performance-message"></p>
+        <button class="btn" onclick="restartQuiz()">Play Again</button>
+    </div>
+</div>
+
+<script>
+    // Complete question dataset compiled from all modules
+    const quizData = [
+        // --- Module 1: AI Workloads & Responsible AI ---
+        {
+            q: "Which of the following is a primary goal of the 'Transparency' principle in Microsoft’s Responsible AI framework?",
+            options: [
+                "A) To ensure AI systems are understandable and their limitations are documented.",
+                "B) To ensure the system works equally for all ethnic groups.",
+                "C) To protect user data from external hackers.",
+                "D) To make sure a human is legally responsible for the AI."
+            ],
+            answer: 0,
+            rationale: "Transparency focuses on openness—ensuring that users and developers understand how a model arrives at a decision and being honest about where the model might fail."
+        },
+        {
+            q: "A company publishes their AI ethics policy and establishes a dedicated oversight committee to review AI outcomes. Which principle does this specifically address?",
+            options: [
+                "A) Inclusiveness",
+                "B) Accountability",
+                "C) Reliability",
+                "D) Transparency"
+            ],
+            answer: 1,
+            rationale: "Accountability requires that the people who design and deploy AI systems must be responsible for how those systems operate and the impact they have on society."
+        },
+        {
+            q: "An AI system is designed to detect fraudulent credit card transactions by identifying patterns that differ from a user’s normal spending habits. What type of AI workload is this?",
+            options: [
+                "A) Natural Language Processing",
+                "B) Computer Vision",
+                "C) Anomaly Detection",
+                "D) Knowledge Mining"
+            ],
+            answer: 2,
+            rationale: "Anomaly detection is used to identify outliers or unusual patterns in data that do not match the expected norm, such as credit card fraud or system failures."
+        },
+
+        // --- Module 2: Machine Learning Fundamentals ---
+        {
+            q: "You are using Azure Machine Learning to group thousands of images of different bird species into categories without providing any pre-existing labels. What type of ML is this?",
+            options: [
+                "A) Supervised Learning",
+                "B) Unsupervised Learning (Clustering)",
+                "C) Regression",
+                "D) Binary Classification"
+            ],
+            answer: 1,
+            rationale: "Because the data is unlabeled, the algorithm must find its own patterns to group the data. This is known as Clustering, a form of Unsupervised Learning."
+        },
+        {
+            q: "Which tool provides a visual 'canvas' for building and deploying machine learning models using a drag-and-drop interface?",
+            options: [
+                "A) Azure Machine Learning Designer",
+                "B) Azure Databricks",
+                "C) Visual Studio Code",
+                "D) Azure AI Search"
+            ],
+            answer: 0,
+            rationale: "The Designer is the specific low-code/no-code tool within Azure Machine Learning Studio used to create ML pipelines visually."
+        },
+        {
+            q: "You are building a model to predict the specific temperature (in degrees) for tomorrow based on historical weather data. What type of Machine Learning task is this?",
+            options: [
+                "A) Classification",
+                "B) Clustering",
+                "C) Regression",
+                "D) Image Tagging"
+            ],
+            answer: 2,
+            rationale: "Regression is used to predict a continuous, numeric value (like temperature, price, or weight). Classification is used for categories (like 'Hot' or 'Cold')."
+        },
+
+        // --- Module 3: Computer Vision ---
+        {
+            q: "You need a solution that identifies the location of specific products on a retail shelf and provides their X and Y coordinates. Which service should you use?",
+            options: [
+                "A) Image Classification",
+                "B) Object Detection",
+                "C) Optical Character Recognition (OCR)",
+                "D) Face API"
+            ],
+            answer: 1,
+            rationale: "While Image Classification tells you what is in an image, Object Detection tells you what it is AND where it is located using bounding boxes and coordinates."
+        },
+        {
+            q: "Which Azure service is best suited for automatically reading and extracting structured data (like table rows and totals) from standardized invoices?",
+            options: [
+                "A) Azure AI Vision",
+                "B) Azure AI Document Intelligence",
+                "C) Azure AI Custom Vision",
+                "D) Azure AI Video Indexer"
+            ],
+            answer: 1,
+            rationale: "Document Intelligence (formerly Form Recognizer) is optimized for extracting structured data from documents, forms, and receipts."
+        },
+        {
+            q: "What type of Computer Vision task is used to determine if a human face is present in a photo?",
+            options: [
+                "A) Face Detection",
+                "B) Object Detection",
+                "C) Image Classification",
+                "D) Spatial Analysis"
+            ],
+            answer: 0,
+            rationale: "Face Detection specifically identifies the presence and location of human faces in an image."
+        },
+
+        // --- Module 4: Natural Language Processing (NLP) & Speech ---
+        {
+            q: "Which NLP feature is used to determine the emotional tone of a piece of text, such as identifying if a product review is 'Positive,' 'Negative,' or 'Neutral'?",
+            options: [
+                "A) Named Entity Recognition (NER)",
+                "B) Sentiment Analysis",
+                "C) Language Detection",
+                "D) Key Phrase Extraction"
+            ],
+            answer: 1,
+            rationale: "Sentiment Analysis evaluates the 'feeling' or emotional weight behind a text to categorize the user's opinion."
+        },
+        {
+            q: "What is the primary function of Named Entity Recognition (NER)?",
+            options: [
+                "A) To translate text from one language to another.",
+                "B) To identify and categorize specific items in text, such as names of people, locations, and organizations.",
+                "C) To convert spoken audio files into written transcripts.",
+                "D) To summarize a long article into a single paragraph."
+            ],
+            answer: 1,
+            rationale: "NER extracts 'entities' like 'Microsoft' (Organization) or 'London' (Location) to help software understand the subjects within a document."
+        },
+        {
+            q: "A global agency wants to translate their website content from English into 100 different languages. Which service is designed for this task?",
+            options: [
+                "A) Azure AI Speech",
+                "B) Azure AI Translator",
+                "C) Azure AI Vision",
+                "D) Azure AI Search"
+            ],
+            answer: 1,
+            rationale: "Azure AI Translator is the dedicated service for text-to-text translation across dozens of languages."
+        },
+        {
+            q: "What is the purpose of Conversational Language Understanding (CLU)?",
+            options: [
+                "A) To translate text from one language to another.",
+                "B) To understand the intent behind a user's command and extract key information.",
+                "C) To read text from a handwritten note.",
+                "D) To detect fraudulent login attempts."
+            ],
+            answer: 1,
+            rationale: "CLU is the core of modern chatbots; it helps the bot understand what the user wants to do (Intent) and what they are talking about (Entities)."
+        },
+
+        // --- Module 5: Generative AI & Intelligent Agents ---
+        {
+            q: "What is the defining characteristic of Generative AI compared to traditional Artificial Intelligence?",
+            options: [
+                "A) It only analyzes historical data without making predictions.",
+                "B) It creates original content, such as text, images, or code, rather than just classifying existing data.",
+                "C) It requires manual coding for every possible output string.",
+                "D) It is used exclusively for managing physical cloud hardware."
+            ],
+            answer: 1,
+            rationale: "Generative AI is distinguished by its ability to generate 'new' data (content creation) rather than just analyzing or labeling 'existing' data."
+        },
+        {
+            q: "How do Small Language Models (SLMs) typically differ from Large Language Models (LLMs)?",
+            options: [
+                "A) SLMs are more expensive to run and require significantly more memory.",
+                "B) SLMs are optimized for efficiency and can often run on-device with fewer parameters.",
+                "C) SLMs are technically incapable of understanding human language.",
+                "D) LLMs are used for image generation, while SLMs are strictly for audio."
+            ],
+            answer: 1,
+            rationale: "SLMs are designed to be lightweight and efficient, making them ideal for specific tasks or edge devices where the massive scale of an LLM isn't necessary."
+        },
+        {
+            q: "What is a 'Token' in the context of how a Large Language Model processes text?",
+            options: [
+                "A) A physical security key used to log into the Azure portal.",
+                "B) The fundamental unit of text (such as a word or a cluster of characters) that an AI processes numerically.",
+                "C) A type of digital currency used to pay for API calls.",
+                "D) A complete, unformatted document file."
+            ],
+            answer: 1,
+            rationale: "AI models break down human language into 'tokens' to perform mathematical calculations. A token is usually a word or a part of a word."
+        },
+        {
+            q: "What is the primary purpose of using Vector Embeddings in an AI system?",
+            options: [
+                "A) To compress images so they occupy less storage space.",
+                "B) To convert data into numerical representations that capture semantic meaning and relationships.",
+                "C) To act as a network firewall for an Azure subscription.",
+                "D) To automatically delete outdated training data."
+            ],
+            answer: 1,
+            rationale: "Vector Embeddings represent the 'meaning' of data as coordinates in a multi-dimensional space, allowing the AI to find related concepts mathematically."
+        },
+        {
+            q: "Which mechanism in the Transformer architecture allows a model to focus on the most relevant parts of a long input sequence when generating an answer?",
+            options: [
+                "A) Sequential Processing",
+                "B) Attention",
+                "C) Data Indexing",
+                "D) Token Limiting"
+            ],
+            answer: 1,
+            rationale: "The 'Attention' mechanism allows the model to 'attend' to specific words in a sentence that provide the most context, regardless of how far apart they are."
+        },
+        {
+            q: "Which three components are generally considered the core pillars of an 'Intelligent AI Agent'?",
+            options: [
+                "A) Memory, Tools, and Reasoning.",
+                "B) Speed, Storage, and Bandwidth.",
+                "C) Python, Java, and C++.",
+                "D) Electricity, Servers, and Cables."
+            ],
+            answer: 0,
+            rationale: "An agent is defined by its ability to remember past interactions (Memory), use external APIs (Tools), and plan its steps (Reasoning)."
+        },
+        {
+            q: "What is the primary role of an AI Gateway within an enterprise AI architecture?",
+            options: [
+                "A) To generate high-resolution images from text.",
+                "B) To manage and secure traffic, including load balancing and policy enforcement, between applications and AI models.",
+                "C) To act as a physical router inside a local office.",
+                "D) To host the raw training datasets for a model."
+            ],
+            answer: 1,
+            rationale: "An AI Gateway serves as the 'management layer,' ensuring that AI requests are secure, governed, and distributed efficiently across models."
+        },
+        {
+            q: "Which pattern is used to provide a Large Language Model with specific, up-to-date data from your own organization to improve the accuracy of its responses?",
+            options: [
+                "A) Zero-Shot Prompting",
+                "B) Retrieval Augmented Generation (RAG)",
+                "C) Deep Learning Training",
+                "D) Hard-coding"
+            ],
+            answer: 1,
+            rationale: "RAG 'augments' the model's generation process by first 'retrieving' relevant facts from a private data source."
+        },
+        {
+            q: "Which Azure service is designed to create high-performance indexes that allow for Semantic Search across large datasets?",
+            options: [
+                "A) Azure AI Search",
+                "B) Azure SQL Database",
+                "C) Azure Virtual Machines",
+                "D) Azure Monitor"
+            ],
+            answer: 0,
+            rationale: "Azure AI Search is the primary tool for building search indexes that support both keyword and semantic (meaning-based) retrieval."
+        },
+        {
+            q: "Why are Vector Databases essential for modern AI applications?",
+            options: [
+                "A) They store data in traditional rows and columns for easier human reading.",
+                "B) They store and query high-dimensional mathematical vectors to enable similarity-based searching.",
+                "C) They are the only databases that can store plain text files.",
+                "D) They are required to turn the AI on and off."
+            ],
+            answer: 1,
+            rationale: "Because AI models understand the world through vectors (embeddings), a Vector Database is needed to find the 'nearest' or most 'similar' pieces of information quickly."
+        },
+        {
+            q: "What is the role of an Orchestration framework, such as Semantic Kernel, in an AI application?",
+            options: [
+                "A) To cool down the physical servers in the data center.",
+                "B) To act as an integration layer that connects AI models with traditional code, plugins, and data connectors.",
+                "C) To design the user interface of a mobile application.",
+                "D) To monitor the electrical usage of a cloud subscription."
+            ],
+            answer: 1,
+            rationale: "Orchestration frameworks manage the complex 'flow' of a request, calling the model, then a tool, then a database in the correct order."
+        },
+        {
+            q: "Which of the following is the best definition of 'Prompt Engineering'?",
+            options: [
+                "A) Programming the neural weights of a model using Python.",
+                "B) The practice of refining and optimizing input text to guide an AI model to produce specific, high-quality results.",
+                "C) Building the physical cooling systems for AI supercomputers.",
+                "D) Deleting user prompts to save disk space."
+            ],
+            answer: 1,
+            rationale: "Prompt Engineering is the 'art' of communicating with the model to get the desired behavior through text instructions."
+        },
+        {
+            q: "In an AI system, what does the process of 'Grounding' refer to?",
+            options: [
+                "A) Disconnecting the AI from the internet for safety.",
+                "B) Ensuring the AI’s responses are based on verifiable, provided data sources rather than its own internal training only.",
+                "C) Limiting the AI to only one single language.",
+                "D) Training the AI on a local computer instead of the cloud."
+            ],
+            answer: 1,
+            rationale: "Grounding 'anchors' the AI's response in reality (your data), which significantly reduces the risk of the model making things up (hallucinating)."
+        },
+        {
+            q: "What is the benefit of 'Semantic Search' compared to traditional keyword-based search?",
+            options: [
+                "A) It is always faster because it skips the text and only looks at numbers.",
+                "B) It understands the intent and context of a query, finding relevant results even if the exact words don't match.",
+                "C) It only works for image data and ignores text.",
+                "D) It does not require any computing power to function."
+            ],
+            answer: 1,
+            rationale: "Semantic search looks for the meaning behind the words. Searching for 'tiny feline' would successfully find results for 'small cat.'"
+        },
+        {
+            q: "When using an Orchestration tool to build an agent, what is a 'Plugin' or 'Tool'?",
+            options: [
+                "A) A physical attachment to the server.",
+                "B) A piece of code that allows the AI to perform a specific action, like checking the weather or searching a database.",
+                "C) A specific brand of laptop.",
+                "D) A type of computer monitor."
+            ],
+            answer: 1,
+            rationale: "Plugins/Tools give an AI 'hands'—the ability to interact with the real world or other software systems beyond just generating text."
+        },
+        {
+            q: "Which parameter would a developer adjust to control the 'creativity' or randomness of a model's response?",
+            options: [
+                "A) Token Limit",
+                "B) Temperature",
+                "C) Deployment Name",
+                "D) Region"
+            ],
+            answer: 1,
+            rationale: "Temperature is a hyperparameter; a lower value makes the output more deterministic (focused), while a higher value makes it more creative/diverse."
+        },
+        {
+            q: "In a real-world implementation, why is it considered a best practice to use 'System Messages' in your prompt?",
+            options: [
+                "A) To send an email to the system administrator.",
+                "B) To define the persona, boundaries, and specific rules the AI must follow throughout the conversation.",
+                "C) To increase the cost of the API call.",
+                "D) To bypass the safety filters of the model."
+            ],
+            answer: 1,
+            rationale: "System messages set the context for the model (e.g., 'You are a helpful customer support assistant for a bank'), ensuring consistent behavior."
+        },
+        {
+            q: "What is the benefit of using 'Managed Identity' instead of an API Key for authenticating an Azure application?",
+            options: [
+                "A) It makes the AI smarter.",
+                "B) It eliminates the need for developers to manage and store secrets/credentials, improving security.",
+                "C) It allows the app to run without an internet connection.",
+                "D) It reduces the number of tokens used."
+            ],
+            answer: 1,
+            rationale: "Managed Identity is a more secure way to handle authentication by letting Azure manage the credentials between services automatically."
+        },
+        {
+            q: "In an AI-powered application, what does 'Latency' refer to?",
+            options: [
+                "A) The total number of tokens in the response.",
+                "B) The time it takes for the AI to generate a response after receiving a prompt.",
+                "C) The physical weight of the server.",
+                "D) The price of the Azure subscription."
+            ],
+            answer: 1,
+            rationale: "Low latency is critical for a good user experience, especially in real-time chat applications."
+        },
+        {
+            q: "Why should a developer implement 'Content Filtering' in their AI application?",
+            options: [
+                "A) To make the response text appear in different fonts.",
+                "B) To ensure the model does not generate or display harmful, hateful, or inappropriate content.",
+                "C) To limit the AI to only using five-letter words.",
+                "D) To prevent the AI from accessing the computer's mouse."
+            ],
+            answer: 1,
+            rationale: "Content filtering is a fundamental part of Responsible AI, protecting both the user and the company's reputation."
+        }
+    ];
+
+    let currentQuestionIndex = 0;
+    let score = 0;
+    let answered = false;
+
+    const startScreen = document.getElementById('start-screen');
+    const quizScreen = document.getElementById('quiz-screen');
+    const endScreen = document.getElementById('end-screen');
+    const questionProgress = document.getElementById('question-progress');
+    const scoreKeeper = document.getElementById('score-keeper');
+    const questionTitle = document.getElementById('question-title');
+    const optionsContainer = document.getElementById('options-container');
+    const rationaleContainer = document.getElementById('rationale-container');
+    const rationaleText = document.getElementById('rationale-text');
+    const nextBtn = document.getElementById('next-btn');
+    const finalScore = document.getElementById('final-score');
+    const performanceMessage = document.getElementById('performance-message');
+
+    function startQuiz() {
+        startScreen.classList.remove('active');
+        quizScreen.classList.add('active');
+        currentQuestionIndex = 0;
+        score = 0;
+        loadQuestion();
+    }
+
+    function loadQuestion() {
+        answered = false;
+        nextBtn.disabled = true;
+        rationaleContainer.style.display = 'none';
+        
+        const currentQ = quizData[currentQuestionIndex];
+        questionProgress.innerText = `Question ${currentQuestionIndex + 1} of ${quizData.length}`;
+        scoreKeeper.innerText = `Score: ${score}`;
+        questionTitle.innerText = currentQ.q;
+
+        optionsContainer.innerHTML = '';
+        currentQ.options.forEach((option, index) => {
+            const li = document.createElement('li');
+            li.className = 'option-item';
+            li.innerText = option;
+            li.onclick = () => selectOption(index, li);
+            optionsContainer.appendChild(li);
+        });
+    }
+
+    function selectOption(selectedIndex, element) {
+        if (answered) return;
+        answered = true;
+
+        const currentQ = quizData[currentQuestionIndex];
+        const options = optionsContainer.children;
+
+        if (selectedIndex === currentQ.answer) {
+            element.classList.add('correct');
+            score++;
+            scoreKeeper.innerText = `Score: ${score}`;
+        } else {
+            element.classList.add('incorrect');
+            options[currentQ.answer].classList.add('correct');
+        }
+
+        rationaleText.innerText = currentQ.rationale;
+        rationaleContainer.style.display = 'block';
+        nextBtn.disabled = false;
+    }
+
+    function nextQuestion() {
+        currentQuestionIndex++;
+        if (currentQuestionIndex < quizData.length) {
+            loadQuestion();
+        } else {
+            showEndScreen();
+        }
+    }
+
+    function showEndScreen() {
+        quizScreen.classList.remove('active');
+        endScreen.classList.add('active');
+        finalScore.innerText = `Your Score: ${score} / ${quizData.length}`;
+        
+        const percentage = (score / quizData.length) * 100;
+        if (percentage >= 80) {
+            performanceMessage.innerText = "Outstanding! You have exceptional mastery of AI & Azure concepts.";
+        } else if (percentage >= 50) {
+            performanceMessage.innerText = "Good job! Review the rationale sections to polish up on specific agent and cloud concepts.";
+        } else {
+            performanceMessage.innerText = "Keep practicing! Review your module notes and try again to improve your score.";
+        }
+    }
+
+    function restartQuiz() {
+        endScreen.classList.remove('active');
+        startScreen.classList.add('active');
+    }
+</script>
+
+</body>
+</html>
